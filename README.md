@@ -1,61 +1,35 @@
-# TVBox 接口仓库（tvbox2）
+# tvbox2 — 自包含 TVBox 接口仓库
 
-本仓库存放可直接导入 **TVBox / 影视仓** 的接口配置，所有文件自包含，从 GitHub 取数不依赖任何第三方站点。
+本仓库收录**可直接从 GitHub 访问、依赖自包含**的 TVBox / 影视仓接口配置，手机端无需直连 github。
 
-## 文件说明
-
-| 文件 | 说明 |
-|------|------|
-| `sun.json` | 已解密的标准 TVBox 配置，含 106 个采集站（`type=3` 的 csp 爬虫源）。 |
-| `deps/spider.jar` | 全局 spider 爬虫包（md5=`cfab59e847b219aeb1806bff51a68a52`），由 `sun.json` 的 `spider` 字段引用，负责提供各站爬虫类。 |
-
-## ⚠️ 国内访问说明（重点）
-
-`raw.githubusercontent.com` 在国内直连不稳定 / 被墙，且有两个坑已替你规避：
-
-1. **jsDelivr 会返回 `403` 拦截 `.jar` 文件** —— 所以 spider.jar 不能走 jsDelivr。
-2. **ghproxy 类代理会改写响应体里的 URL**（把配置内 `spider` 还原成直连 raw，导致客户端拉不到 jar）—— 所以「订阅地址」不能走 ghproxy 嵌套。
-
-本仓库采用的组合：**订阅地址走 gitmirror 镜像（国内直连、不经 ghproxy、不被改写），spider.jar 走 ghproxy.net（只有它能拉 jar）**。
-
-### 主用（推荐）
-
-订阅地址（填入 TVBox 配置地址）：
-
+## 文件结构
 ```
-https://raw.gitmirror.com/hebijunge/tvbox2/main/sun.json
+sun.json              接口配置（106 个 csp 爬虫源）
+deps/spider.jar       唯一外部依赖：爬虫 jar（md5=cfab59e847b219aeb1806bff51a68a52）
+README.md             本文件
 ```
 
-该配置内的 `spider.jar` 已自动指向代理地址，客户端加载后自动经 ghproxy 拉取，**无需手动下载**：
+## 订阅地址（填进 TVBox 配置地址即可）
+手机访问不了 raw.githubusercontent.com，请用镜像地址：
 
+- **主用（gitmirror 镜像，国内直连、不改写内容）**
+  ```
+  https://raw.gitmirror.com/hebijunge/tvbox2/main/sun.json
+  ```
+- **备选（gh.927223.xyz 透传镜像，同样不改写 spider）**
+  ```
+  https://gh.927223.xyz/https://raw.githubusercontent.com/hebijunge/tvbox2/main/sun.json
+  ```
+
+## spider.jar 加载（已内嵌在 sun.json，无需手动配置）
+`sun.json` 的 `spider` 字段已指向最快镜像，客户端首次加载会自动下载 jar：
 ```
-https://ghproxy.net/https://raw.githubusercontent.com/hebijunge/tvbox2/main/deps/spider.jar
+https://gh.927223.xyz/https://raw.githubusercontent.com/hebijunge/tvbox2/main/deps/spider.jar;md5;cfab59e847b219aeb1806bff51a68a52
 ```
+> 实测下载速率对比（1.87MB jar）：`gh.927223.xyz` ≈ 1.7 MB/s（1 秒拉完）、`ghf.xn--eqrr82bzpe.top` ≈ 1.67 MB/s，二者均为**透传型、不改写响应 URL**；
+> 而 `ghproxy.net` 仅 ≈ 0.36 MB/s（慢 5 倍）且会**改写 spider 为直连 raw**，故不推荐。
 
-### 备选方案（gitmirror 也不通时）
-
-订阅改用 ghproxy 嵌套：
-
-```
-https://ghproxy.net/https://raw.githubusercontent.com/hebijunge/tvbox2/main/sun.json
-```
-
-> 注意：经 ghproxy 拉取订阅时，代理可能把响应里 `spider` 的地址还原成直连 raw；若客户端因此拉不到 jar，请把 `spider` 字段手动改回带 `https://ghproxy.net/` 前缀，或保持订阅用上面的 gitmirror 方案（推荐）。
-
-jsDelivr 仅可作订阅地址备选（国内 CDN），但**不能用于 spider**（会 403 挡 jar）：
-
-```
-https://cdn.jsdelivr.net/gh/hebijunge/tvbox2@main/sun.json
-```
-
-## 使用方法
-
-1. 打开 TVBox / 影视仓 → 设置 → 配置地址（订阅）。
-2. 填入上面的「主用」订阅地址（`raw.gitmirror.com` 版）。
-3. 保存，接口自动加载；`spider.jar` 由客户端按 `spider` 字段经代理自动拉取，**无需手动下载**。
-
-## 备注
-
-- `sun.json` 内 `wallpaper` / `danmaku` 指向 `127.0.0.1:9978`（本地代理运行时引用），需配套本地代理运行，不影响 106 个站点正常播放。
-- `logo` 等图片来自外部图床，与 GitHub 直连无关，加载失败不影响使用。
-- `spider.jar` 作者按日更新，配置内 md5 为锁死值；若某日失效，重新抓取并更新 md5 即可。
+## 注意事项
+- **jsDelivr 不能用于 jar**：`cdn.jsdelivr.net` 对 `.jar` 返回 403，仅适合拉 JSON 订阅。
+- **本地代理**：配置里的 `wallpaper` / `danmaku` 指向 `127.0.0.1:9978`（本地代理运行时引用），需配套代理在运行，否则仅壁纸/弹幕不显示，不影响 106 个站点播放。
+- **jar 时效**：spider.jar 由上游按日更新，配置里 md5 锁死。若某天加载报 md5 不符，重新抓取替换 `deps/spider.jar` 并更新 md5 即可。
